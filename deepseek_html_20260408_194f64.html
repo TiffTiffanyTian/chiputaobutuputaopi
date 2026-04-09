@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>攀岩比赛计时器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body.dark {
+            --bg-page: #0a0c12;
+            --bg-card: #161c27;
+            --bg-input: #0f1118;
+            --text-primary: #eef2ff;
+            --text-secondary: #9ca3af;
+            --border-color: #2d3748;
+            --btn-bg: #2d3748;
+            --btn-primary-bg: #1e3a5f;
+            --timer-bg: #010101;
+            --shadow: rgba(0,0,0,0.6);
+            --color-red: #ef4444;
+            --color-green: #22c55e;
+        }
+        body.light {
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-input: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --border-color: #cbd5e1;
+            --btn-bg: #e2e8f0;
+            --btn-primary-bg: #1e4a76;
+            --timer-bg: #fefefe;
+            --shadow: rgba(0,0,0,0.08);
+            --color-red: #dc2626;
+            --color-green: #16a34a;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-page);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-primary);
+            padding: 0.5rem;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 1500px;
+            min-height: 95vh;
+            background: var(--bg-page);
+            box-shadow: 0 25px 40px var(--shadow);
+            border-radius: 2rem;
+            overflow: hidden;
+        }
+        .page {
+            padding: 1.5rem;
+            display: block;
+        }
+        @media (min-width: 768px) {
+            .page { padding: 2rem; }
+        }
+        .hidden-page {
+            display: none !important;
+        }
+        h1, h2 {
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 1.2rem;
+            border-bottom: 2px solid var(--border-color);
+            display: inline-block;
+            width: auto;
+            padding-bottom: 0.3rem;
+            color: var(--text-primary);
+            font-size: clamp(1.5rem, 6vw, 2.2rem);
+        }
+        .race-title {
+            text-align: center;
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+        .settings-card {
+            background: var(--bg-card);
+            border-radius: 2rem;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+            padding: 0.3rem 0;
+        }
+        .form-label {
+            font-weight: 600;
+            min-width: 85px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        @media (min-width: 640px) {
+            .form-label { min-width: 100px; font-size: 1rem; }
+        }
+        .options-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .options-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            background: var(--bg-input);
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+        .custom-container {
+            display: none;
+            margin-left: 0.5rem;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-input);
+            padding: 0.2rem 0.8rem;
+            border-radius: 2rem;
+        }
+        .custom-container input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            padding: 0.3rem 0.6rem;
+            border-radius: 2rem;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            width: 90px;
+        }
+        button {
+            background: var(--btn-bg);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 3rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            touch-action: manipulation;
+        }
+        button:active { transform: scale(0.97); }
+        .btn-primary { background: var(--btn-primary-bg); color: white; }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .timer-display {
+            font-family: 'Arial Black', 'Impact', monospace;
+            font-size: clamp(3rem, 15vw, 12rem);
+            font-weight: 900;
+            text-align: center;
+            background: var(--timer-bg);
+            padding: 0.2rem;
+            border-radius: 2rem;
+            letter-spacing: 2px;
+            margin: 0.5rem 0;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 0 15px 25px var(--shadow);
+            line-height: 1.2;
+        }
+        @media (min-width: 1024px) {
+            .timer-display { font-size: 10rem; }
+        }
+        .info-sub {
+            text-align: center;
+            font-size: clamp(1rem, 4vw, 1.8rem);
+            margin-top: 0.5rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .stealth-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .stealth-btn {
+            background: var(--btn-bg);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        .end-btn, .stop-timer-btn { background: #991b1b; color: white; }
+        .reset-btn { background: #475569; color: white; }
+        .timer-green { color: var(--color-green); text-shadow: 0 0 5px rgba(34,197,94,0.4); }
+        .timer-red { color: var(--color-red); text-shadow: 0 0 5px rgba(239,68,68,0.4); }
+        .theme-switch {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+        .theme-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 0.2rem 0.8rem;
+            font-size: 0.8rem;
+        }
+        .end-race-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+        .end-race-btn {
+            background: #991b1b;
+            opacity: 0.75;
+            font-size: 0.75rem;
+            padding: 0.3rem 1rem;
+            color: white;
+        }
+    </style>
+</head>
+<body class="dark">
+<div class="app-container">
+    <!-- 页面1: 赛前设置 -->
+    <div id="pageSetup" class="page">
+        <div class="theme-switch">
+            <span>主题：</span>
+            <button class="theme-btn" onclick="setTheme('dark')">深色</button>
+            <button class="theme-btn" onclick="setTheme('light')">浅色</button>
+        </div>
+        <div style="text-align: center;"><h1>攀岩比赛计时器</h1></div>
+        <div class="settings-card">
+            <div class="form-row">
+                <span class="form-label">比赛名称：</span>
+                <input type="text" id="compNameInput" placeholder="请输入比赛名称" style="flex:1; min-width: 150px;">
+            </div>
+            <div class="form-row">
+                <span class="form-label">比赛项目：</span>
+                <div class="options-group">
+                    <label><input type="radio" name="eventType" value="difficulty" onchange="syncEventType()" checked> 难度赛</label>
+                    <label><input type="radio" name="eventType" value="boulder" onchange="syncEventType()"> 攀石赛</label>
+                </div>
+            </div>
+
+            <div id="difficultySettings">
+                <div class="form-row">
+                    <span class="form-label">准备时间：</span>
+                    <div class="options-group">
+                        <label><input type="radio" name="prepTimeOption" value="40" onchange="updateCustomVisibility()" checked> 40秒</label>
+                        <label><input type="radio" name="prepTimeOption" value="0" onchange="updateCustomVisibility()"> 0秒</label>
+                        <label><input type="radio" name="prepTimeOption" value="custom" onchange="updateCustomVisibility()"> 自定义</label>
+                    </div>
+                    <div id="difficultyCustomPrepContainer" class="custom-container">
+                        <input type="number" id="difficultyCustomPrepSec" placeholder="秒数" min="0" max="300" step="1">
+                        <span>秒</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">攀爬时间：</span>
+                    <div class="options-group">
+                        <label><input type="radio" name="climbTimeOption" value="240" onchange="updateCustomVisibility()" checked> 4分钟</label>
+                        <label><input type="radio" name="climbTimeOption" value="300" onchange="updateCustomVisibility()"> 5分钟</label>
+                        <label><input type="radio" name="climbTimeOption" value="360" onchange="updateCustomVisibility()"> 6分钟</label>
+                        <label><input type="radio" name="climbTimeOption" value="custom" onchange="updateCustomVisibility()"> 自定义</label>
+                    </div>
+                    <div id="difficultyCustomClimbContainer" class="custom-container">
+                        <input type="number" id="difficultyCustomClimbMin" placeholder="分钟" min="0.5" max="60" step="0.5">
+                        <span>分钟</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="boulderSettings" style="display:none;">
+                <div class="form-row">
+                    <span class="form-label">比赛形式：</span>
+                    <div class="options-group">
+                        <label><input type="radio" name="boulderFormat" value="open" onchange="syncEventType()" checked> 开放式</label>
+                        <label><input type="radio" name="boulderFormat" value="rotate" onchange="syncEventType()"> 轮换式</label>
+                    </div>
+                </div>
+                <div id="boulderOpenDiv">
+                    <div class="form-row">
+                        <span class="form-label">比赛时长：</span>
+                        <div class="custom-container" style="display: flex;">
+                            <input type="number" id="boulderOpenMinutes" placeholder="分钟" min="0.5" max="120" step="0.5">
+                            <span>分钟</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="boulderRotateDiv" style="display:none;">
+                    <div class="form-row">
+                        <span class="form-label">准备时间：</span>
+                        <div class="options-group">
+                            <label><input type="radio" name="rotatePrepOption" value="15" onchange="updateCustomVisibility()" checked> 15秒</label>
+                            <label><input type="radio" name="rotatePrepOption" value="0" onchange="updateCustomVisibility()"> 0秒</label>
+                            <label><input type="radio" name="rotatePrepOption" value="custom" onchange="updateCustomVisibility()"> 自定义</label>
+                        </div>
+                        <div id="rotatePrepCustomContainer" class="custom-container">
+                            <input type="number" id="rotatePrepCustomSec" placeholder="秒数" min="0" max="300" step="1">
+                            <span>秒</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">攀爬时间：</span>
+                        <div class="options-group">
+                            <label><input type="radio" name="rotateClimbOption" value="240" onchange="updateCustomVisibility()" checked> 4分钟</label>
+                            <label><input type="radio" name="rotateClimbOption" value="300" onchange="updateCustomVisibility()"> 5分钟</label>
+                            <label><input type="radio" name="rotateClimbOption" value="custom" onchange="updateCustomVisibility()"> 自定义</label>
+                        </div>
+                        <div id="rotateClimbCustomContainer" class="custom-container">
+                            <input type="number" id="rotateClimbCustomMin" placeholder="分钟" min="0.5" max="60" step="0.5">
+                            <span>分钟</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label">线路数量：</span>
+                        <div class="options-group">
+                            <label><input type="radio" name="routeQtyOption" value="4" onchange="updateCustomVisibility()" checked> 4条</label>
+                            <label><input type="radio" name="routeQtyOption" value="5" onchange="updateCustomVisibility()"> 5条</label>
+                            <label><input type="radio" name="routeQtyOption" value="custom" onchange="updateCustomVisibility()"> 自定义</label>
+                        </div>
+                        <div id="routeQtyCustomContainer" class="custom-container">
+                            <input type="number" id="routeQtyCustomNum" placeholder="数量" min="1" max="20" step="1">
+                            <span>条</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button id="startObserveBtn" class="btn-primary" onclick="startObserve()">开始线路观察</button>
+            <button id="startCompBtn" class="btn-primary" onclick="initRace()">开始比赛</button>
+        </div>
+    </div>
+
+    <!-- 页面2: 线路观察 -->
+    <div id="pageObserve" class="page hidden-page">
+        <div style="text-align: center;"><h2>线路观察</h2></div>
+        <div class="timer-display timer-green" id="observeTimerDisplay">00:00</div>
+        <div id="observeSubInfo" class="info-sub"></div>
+        <div class="stealth-buttons">
+            <button class="stealth-btn" onclick="observeStart()">开始计时</button>
+            <button class="stealth-btn end-btn" onclick="observeEnd()">结束观察</button>
+        </div>
+    </div>
+
+    <!-- 页面3: 比赛计时 -->
+    <div id="pageRace" class="page hidden-page">
+        <div class="race-title" id="raceTitle">比赛计时</div>
+        <div class="timer-display" id="raceTimerDisplay">00:00</div>
+        <div id="raceExtraInfo" class="info-sub"></div>
+        <div id="raceButtonsContainer" class="stealth-buttons"></div>
+        <div class="end-race-wrapper">
+            <button class="end-race-btn" onclick="raceEnd()">结束比赛</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 全局变量 ----------
+    var audioCtx = null, audioEnabled = false;
+    var activeAnim = null, timerActive = false, endTime = 0, onTickCb = null, onCompleteCb = null;
+    var obsRemaining = 0, obsTotal = 1, obsRound = 1, obsRunning = false;
+    var raceState = {
+        mode: null, active: false, remaining: 0,
+        phase: null, prepTotal: 0, climbTotal: 0, stoppedActual: null,
+        openTotal: 0,
+        rotateRoute: 1, rotateTotal: 0, rotateSubPhase: null, rotatePrepVal: 0, rotateClimbVal: 0,
+        beepFlag: false
+    };
+
+    // ---------- 音频 ----------
+    function enableAudio() {
+        if (audioEnabled) return;
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return; }
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(function(){ audioEnabled = true; }).catch(function(){});
+        } else {
+            audioEnabled = true;
+        }
+    }
+    function playTone(freq, duration, type) {
+        if (!audioCtx || !audioEnabled || audioCtx.state !== 'running') return;
+        try {
+            var now = audioCtx.currentTime;
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            osc.type = type || 'sine';
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.start();
+            osc.stop(now + duration);
+        } catch(e) {}
+    }
+    function beepShort() { playTone(880, 0.2, 'sine'); }
+    function beepMediumLong() { playTone(660, 0.8, 'sine'); }
+    function beepEndLong() { playTone(550, 1.3, 'sine'); }
+    function playFiveBeeps() {
+        var cnt = 0;
+        function next() {
+            if (cnt < 5) { beepShort(); cnt++; setTimeout(next, 1000); }
+            else { beepEndLong(); }
+        }
+        next();
+    }
+
+    // ---------- 计时器 ----------
+    function stopTimer() {
+        if (activeAnim) cancelAnimationFrame(activeAnim);
+        activeAnim = null;
+        timerActive = false;
+    }
+    function startTimer(seconds, tick, complete) {
+        stopTimer();
+        if (seconds <= 0) { if (complete) complete(); return; }
+        endTime = performance.now() + seconds * 1000;
+        timerActive = true;
+        onTickCb = tick;
+        onCompleteCb = complete;
+        var lastSec = Math.ceil(seconds);
+        function update() {
+            if (!timerActive) return;
+            var now = performance.now();
+            var msLeft = endTime - now;
+            if (msLeft <= 0) {
+                if (onCompleteCb) onCompleteCb();
+                stopTimer();
+                if (onTickCb) onTickCb(0);
+                return;
+            }
+            var secLeft = Math.ceil(msLeft / 1000);
+            if (secLeft !== lastSec) {
+                lastSec = secLeft;
+                if (onTickCb) onTickCb(secLeft);
+            }
+            activeAnim = requestAnimationFrame(update);
+        }
+        if (onTickCb) onTickCb(seconds);
+        activeAnim = requestAnimationFrame(update);
+    }
+
+    // ---------- UI 联动 ----------
+    function updateCustomVisibility() {
+        var isDiff = document.querySelector('input[name="eventType"]:checked') && document.querySelector('input[name="eventType"]:checked').value === 'difficulty';
+        var prepCustom = document.querySelector('input[name="prepTimeOption"]:checked') && document.querySelector('input[name="prepTimeOption"]:checked').value === 'custom';
+        var prepContainer = document.getElementById('difficultyCustomPrepContainer');
+        if (prepContainer) prepContainer.style.display = (isDiff && prepCustom) ? 'flex' : 'none';
+        var climbCustom = document.querySelector('input[name="climbTimeOption"]:checked') && document.querySelector('input[name="climbTimeOption"]:checked').value === 'custom';
+        var climbContainer = document.getElementById('difficultyCustomClimbContainer');
+        if (climbContainer) climbContainer.style.display = (isDiff && climbCustom) ? 'flex' : 'none';
+        if (!isDiff) {
+            var fmt = document.querySelector('input[name="boulderFormat"]:checked') ? document.querySelector('input[name="boulderFormat"]:checked').value : 'open';
+            var isRotate = (fmt === 'rotate');
+            var openDiv = document.getElementById('boulderOpenDiv');
+            var rotateDiv = document.getElementById('boulderRotateDiv');
+            if (openDiv) openDiv.style.display = (!isRotate) ? 'block' : 'none';
+            if (rotateDiv) rotateDiv.style.display = isRotate ? 'block' : 'none';
+            if (isRotate) {
+                var prepCR = document.querySelector('input[name="rotatePrepOption"]:checked') && document.querySelector('input[name="rotatePrepOption"]:checked').value === 'custom';
+                var prepCustomRot = document.getElementById('rotatePrepCustomContainer');
+                if (prepCustomRot) prepCustomRot.style.display = prepCR ? 'flex' : 'none';
+                var climbCR = document.querySelector('input[name="rotateClimbOption"]:checked') && document.querySelector('input[name="rotateClimbOption"]:checked').value === 'custom';
+                var climbCustomRot = document.getElementById('rotateClimbCustomContainer');
+                if (climbCustomRot) climbCustomRot.style.display = climbCR ? 'flex' : 'none';
+                var qtyCR = document.querySelector('input[name="routeQtyOption"]:checked') && document.querySelector('input[name="routeQtyOption"]:checked').value === 'custom';
+                var qtyCustomRot = document.getElementById('routeQtyCustomContainer');
+                if (qtyCustomRot) qtyCustomRot.style.display = qtyCR ? 'flex' : 'none';
+            }
+        }
+        var isBoulderOpen = (!isDiff && document.querySelector('input[name="boulderFormat"]:checked') && document.querySelector('input[name="boulderFormat"]:checked').value === 'open');
+        var observeBtn = document.getElementById('startObserveBtn');
+        if (observeBtn) observeBtn.style.display = isBoulderOpen ? 'none' : 'inline-block';
+    }
+    function syncEventType() {
+        var isDiff = document.querySelector('input[name="eventType"]:checked') && document.querySelector('input[name="eventType"]:checked').value === 'difficulty';
+        var diffSet = document.getElementById('difficultySettings');
+        var boulderSet = document.getElementById('boulderSettings');
+        if (diffSet) diffSet.style.display = isDiff ? 'block' : 'none';
+        if (boulderSet) boulderSet.style.display = isDiff ? 'none' : 'block';
+        if (!isDiff) {
+            var fmt = document.querySelector('input[name="boulderFormat"]:checked') ? document.querySelector('input[name="boulderFormat"]:checked').value : 'open';
+            var openDiv = document.getElementById('boulderOpenDiv');
+            var rotateDiv = document.getElementById('boulderRotateDiv');
+            if (openDiv) openDiv.style.display = (fmt === 'open') ? 'block' : 'none';
+            if (rotateDiv) rotateDiv.style.display = (fmt === 'rotate') ? 'block' : 'none';
+        }
+        updateCustomVisibility();
+    }
+    function getConfig() {
+        var compName = document.getElementById('compNameInput').value.trim();
+        var eventType = document.querySelector('input[name="eventType"]:checked') ? document.querySelector('input[name="eventType"]:checked').value : 'difficulty';
+        if (eventType === 'difficulty') {
+            var prep = 40;
+            var prepOpt = document.querySelector('input[name="prepTimeOption"]:checked') ? document.querySelector('input[name="prepTimeOption"]:checked').value : '40';
+            if (prepOpt === '40') prep = 40;
+            else if (prepOpt === '0') prep = 0;
+            else if (prepOpt === 'custom') {
+                var v = parseInt(document.getElementById('difficultyCustomPrepSec').value, 10);
+                prep = isNaN(v) ? 40 : Math.max(0, v);
+            }
+            var climb = 240;
+            var climbOpt = document.querySelector('input[name="climbTimeOption"]:checked') ? document.querySelector('input[name="climbTimeOption"]:checked').value : '240';
+            if (climbOpt === '240') climb = 240;
+            else if (climbOpt === '300') climb = 300;
+            else if (climbOpt === '360') climb = 360;
+            else if (climbOpt === 'custom') {
+                var mins = parseFloat(document.getElementById('difficultyCustomClimbMin').value);
+                if (isNaN(mins) || mins <= 0) mins = 4;
+                climb = Math.round(mins * 60);
+                if (climb < 1) climb = 60;
+            }
+            return { eventType: eventType, compName: compName, prepSec: prep, climbSec: climb };
+        } else {
+            var format = document.querySelector('input[name="boulderFormat"]:checked') ? document.querySelector('input[name="boulderFormat"]:checked').value : 'open';
+            if (format === 'open') {
+                var mins = parseFloat(document.getElementById('boulderOpenMinutes').value);
+                if (isNaN(mins) || mins <= 0) mins = 5;
+                var openSec = Math.round(mins * 60);
+                return { eventType: eventType, compName: compName, boulderFormat: 'open', openSec: openSec };
+            } else {
+                var prepRot = 15;
+                var prepOptRot = document.querySelector('input[name="rotatePrepOption"]:checked') ? document.querySelector('input[name="rotatePrepOption"]:checked').value : '15';
+                if (prepOptRot === '15') prepRot = 15;
+                else if (prepOptRot === '0') prepRot = 0;
+                else if (prepOptRot === 'custom') {
+                    var vp = parseInt(document.getElementById('rotatePrepCustomSec').value, 10);
+                    prepRot = isNaN(vp) ? 15 : Math.max(0, vp);
+                }
+                var climbRot = 240;
+                var climbOptRot = document.querySelector('input[name="rotateClimbOption"]:checked') ? document.querySelector('input[name="rotateClimbOption"]:checked').value : '240';
+                if (climbOptRot === '240') climbRot = 240;
+                else if (climbOptRot === '300') climbRot = 300;
+                else if (climbOptRot === 'custom') {
+                    var minsRot = parseFloat(document.getElementById('rotateClimbCustomMin').value);
+                    if (isNaN(minsRot) || minsRot <= 0) minsRot = 4;
+                    climbRot = Math.round(minsRot * 60);
+                }
+                var qty = 4;
+                var qtyOpt = document.querySelector('input[name="routeQtyOption"]:checked') ? document.querySelector('input[name="routeQtyOption"]:checked').value : '4';
+                if (qtyOpt === '4') qty = 4;
+                else if (qtyOpt === '5') qty = 5;
+                else if (qtyOpt === 'custom') {
+                    var vq = parseInt(document.getElementById('routeQtyCustomNum').value, 10);
+                    qty = isNaN(vq) ? 4 : Math.max(1, vq);
+                }
+                return { eventType: eventType, compName: compName, boulderFormat: 'rotate', rotatePrepSec: prepRot, rotateClimbSec: climbRot, routeQty: qty };
+            }
+        }
+    }
+    function showPage(pageId) {
+        stopTimer();
+        document.getElementById('pageSetup').classList.add('hidden-page');
+        document.getElementById('pageObserve').classList.add('hidden-page');
+        document.getElementById('pageRace').classList.add('hidden-page');
+        if (pageId === 'setup') document.getElementById('pageSetup').classList.remove('hidden-page');
+        if (pageId === 'observe') document.getElementById('pageObserve').classList.remove('hidden-page');
+        if (pageId === 'race') document.getElementById('pageRace').classList.remove('hidden-page');
+    }
+
+    // ---------- 线路观察 ----------
+    function updateObsDisplay(rem) {
+        var mins = Math.floor(rem/60), secs = rem%60;
+        var el = document.getElementById('observeTimerDisplay');
+        el.innerText = (mins<10?'0'+mins:mins) + ':' + (secs<10?'0'+secs:secs);
+        el.className = 'timer-display timer-green';
+        document.getElementById('observeSubInfo').innerHTML = (obsTotal>1) ? (obsRound + ' / ' + obsTotal) : '';
+    }
+    function startObserve() {
+        enableAudio();
+        var cfg = getConfig();
+        if (cfg.eventType === 'boulder' && cfg.boulderFormat === 'open') return;
+        stopTimer();
+        if (cfg.eventType === 'difficulty') {
+            obsRemaining = cfg.climbSec;
+            obsTotal = 1;
+            obsRound = 1;
+        } else {
+            obsRemaining = 120;
+            obsTotal = cfg.routeQty;
+            obsRound = 1;
+        }
+        obsRunning = false;
+        updateObsDisplay(obsRemaining);
+        showPage('observe');
+    }
+    function observeStart() {
+        if (obsRunning || obsRemaining <= 0) return;
+        obsRunning = true;
+        var curRem = obsRemaining, curRound = obsRound;
+        function tick(sec) {
+            updateObsDisplay(sec);
+            if (sec === 60) beepMediumLong();
+            if (sec >= 1 && sec <= 4) beepShort();
+            if (sec === 0) {
+                beepEndLong();
+                if (curRound >= obsTotal) {
+                    obsRunning = false;
+                    stopTimer();
+                    updateObsDisplay(0);
+                } else {
+                    curRound++;
+                    curRem = 120;
+                    startTimer(curRem, tick, function(){});
+                }
+            }
+        }
+        startTimer(curRem, tick, function(){});
+    }
+    function observeEnd() { stopTimer(); obsRunning=false; showPage('setup'); }
+
+    // ---------- 比赛模块 ----------
+    function updateRaceDisplay(rem) {
+        var mins = Math.floor(rem/60), secs = rem%60;
+        var timerDiv = document.getElementById('raceTimerDisplay');
+        timerDiv.innerText = (mins<10?'0'+mins:mins) + ':' + (secs<10?'0'+secs:secs);
+        if (raceState.mode === 'difficulty') {
+            timerDiv.className = raceState.phase === 'prep' ? 'timer-display timer-red' : 'timer-display timer-green';
+        } else if (raceState.mode === 'boulderRotate') {
+            timerDiv.className = raceState.rotateSubPhase === 'prep' ? 'timer-display timer-red' : 'timer-display timer-green';
+        } else {
+            timerDiv.className = 'timer-display timer-green';
+        }
+        var extra = '';
+        if (raceState.mode === 'difficulty' && raceState.stoppedActual !== null) {
+            var used = raceState.stoppedActual;
+            extra = Math.floor(used/60) + ':' + (used%60<10?'0'+used%60:used%60);
+        }
+        document.getElementById('raceExtraInfo').innerHTML = extra;
+    }
+    function raceComplete() {
+        if (!raceState.active) return;
+        raceState.active = false;
+        stopTimer();
+        if (raceState.mode === 'difficulty') {
+            if (raceState.phase === 'prep') {
+                raceState.phase = 'climb';
+                raceState.remaining = raceState.climbTotal;
+                startRaceTimer();
+            } else {
+                raceState.stoppedActual = raceState.climbTotal;
+                updateRaceDisplay(0);
+            }
+        } else if (raceState.mode === 'boulderOpen') {
+            updateRaceDisplay(0);
+        } else if (raceState.mode === 'boulderRotate') {
+            if (raceState.rotateSubPhase === 'prep') {
+                raceState.rotateSubPhase = 'climb';
+                raceState.remaining = raceState.rotateClimbVal;
+                startRaceTimer();
+            } else {
+                if (raceState.rotateRoute < raceState.rotateTotal) {
+                    raceState.rotateRoute++;
+                    raceState.rotateSubPhase = (raceState.rotatePrepVal > 0) ? 'prep' : 'climb';
+                    raceState.remaining = (raceState.rotateSubPhase === 'prep') ? raceState.rotatePrepVal : raceState.rotateClimbVal;
+                    startRaceTimer();
+                } else {
+                    updateRaceDisplay(0);
+                }
+            }
+        }
+        raceState.beepFlag = false;
+    }
+    function raceTick(sec) {
+        raceState.remaining = sec;
+        updateRaceDisplay(sec);
+        if (raceState.mode === 'boulderOpen') {
+            if (sec === 60) beepMediumLong();
+            if (sec === 5 && !raceState.beepFlag) { raceState.beepFlag = true; playFiveBeeps(); }
+        } else if (raceState.mode === 'boulderRotate') {
+            if (raceState.rotateSubPhase === 'prep' && sec === 5 && !raceState.beepFlag) { raceState.beepFlag = true; playFiveBeeps(); }
+            if (raceState.rotateSubPhase === 'climb') {
+                if (sec === 60) beepMediumLong();
+                if (sec === 5 && !raceState.beepFlag) { raceState.beepFlag = true; playFiveBeeps(); }
+            }
+        }
+        if (sec === 0) raceComplete();
+    }
+    function startRaceTimer() {
+        if (raceState.remaining <= 0) { raceComplete(); return; }
+        raceState.beepFlag = false;
+        startTimer(raceState.remaining, raceTick, function(){});
+        raceState.active = true;
+    }
+    function initRace() {
+        enableAudio();
+        var cfg = getConfig();
+        document.getElementById('raceTitle').innerText = cfg.compName || '比赛计时';
+        stopTimer();
+        var container = document.getElementById('raceButtonsContainer');
+        if (cfg.eventType === 'difficulty') {
+            raceState = {
+                mode:'difficulty', active:false,
+                remaining: (cfg.prepSec>0) ? cfg.prepSec : cfg.climbSec,
+                phase: (cfg.prepSec>0) ? 'prep' : 'climb',
+                prepTotal: cfg.prepSec, climbTotal: cfg.climbSec, stoppedActual: null,
+                openTotal:0, rotateRoute:1, rotateTotal:0, rotateSubPhase:null,
+                rotatePrepVal:0, rotateClimbVal:0, beepFlag:false
+            };
+            container.innerHTML = '<button class="stealth-btn" onclick="raceStart()">开始/跳转</button>' +
+                                  '<button class="stealth-btn stop-timer-btn" onclick="raceStop()">停止计时</button>' +
+                                  '<button class="stealth-btn reset-btn" onclick="raceReset()">重置</button>';
+        } else if (cfg.boulderFormat === 'open') {
+            raceState = {
+                mode:'boulderOpen', active:false, remaining: cfg.openSec,
+                phase:null, prepTotal:0, climbTotal:0, stoppedActual:null,
+                openTotal: cfg.openSec, rotateRoute:1, rotateTotal:0, rotateSubPhase:null,
+                rotatePrepVal:0, rotateClimbVal:0, beepFlag:false
+            };
+            container.innerHTML = '<button class="stealth-btn" onclick="raceStart()">开始比赛</button>' +
+                                  '<button class="stealth-btn stop-timer-btn" onclick="raceStop()">停止计时</button>';
+        } else {
+            raceState = {
+                mode:'boulderRotate', active:false,
+                remaining: (cfg.rotatePrepSec>0) ? cfg.rotatePrepSec : cfg.rotateClimbSec,
+                phase:null, prepTotal:0, climbTotal:0, stoppedActual:null,
+                openTotal:0, rotateRoute:1, rotateTotal: cfg.routeQty,
+                rotateSubPhase: (cfg.rotatePrepSec>0) ? 'prep' : 'climb',
+                rotatePrepVal: cfg.rotatePrepSec, rotateClimbVal: cfg.rotateClimbSec, beepFlag:false
+            };
+            container.innerHTML = '<button class="stealth-btn" onclick="raceStart()">开始比赛</button>' +
+                                  '<button class="stealth-btn stop-timer-btn" onclick="raceStop()">停止计时</button>';
+        }
+        updateRaceDisplay(raceState.remaining);
+        showPage('race');
+    }
+    function raceStart() {
+        if (raceState.mode === 'difficulty') {
+            if (raceState.stoppedActual !== null) return;
+            if (!raceState.active) startRaceTimer();
+            else if (raceState.phase === 'prep') {
+                raceState.phase = 'climb';
+                raceState.remaining = raceState.climbTotal;
+                stopTimer();
+                startRaceTimer();
+            }
+        } else {
+            if (!raceState.active) startRaceTimer();
+        }
+    }
+    function raceStop() {
+        if (raceState.mode === 'difficulty') {
+            if (raceState.active && raceState.phase === 'climb') {
+                raceState.stoppedActual = raceState.climbTotal - raceState.remaining;
+                raceState.active = false;
+                stopTimer();
+                updateRaceDisplay(raceState.remaining);
+            } else {
+                raceState.active = false;
+                stopTimer();
+                updateRaceDisplay(raceState.remaining);
+            }
+        } else {
+            raceState.active = false;
+            stopTimer();
+            updateRaceDisplay(0);
+        }
+    }
+    function raceReset() {
+        if (raceState.mode === 'difficulty') {
+            stopTimer();
+            raceState.phase = (raceState.prepTotal > 0) ? 'prep' : 'climb';
+            raceState.remaining = (raceState.phase === 'prep') ? raceState.prepTotal : raceState.climbTotal;
+            raceState.active = false;
+            raceState.stoppedActual = null;
+            updateRaceDisplay(raceState.remaining);
+        }
+    }
+    function raceEnd() { stopTimer(); showPage('setup'); }
+
+    // 主题切换
+    function setTheme(theme) {
+        document.body.classList.remove('dark', 'light');
+        document.body.classList.add(theme);
+    }
+
+    // 初始化
+    syncEventType();
+    showPage('setup');
+    document.body.addEventListener('click', enableAudio, { once: true });
+    document.body.addEventListener('touchstart', enableAudio, { once: true });
+</script>
+</body>
+</html>
